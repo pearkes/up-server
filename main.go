@@ -30,7 +30,7 @@ type response struct {
 
 // Start the service
 func main() {
-	gorest.RegisterService(new(UpService)) //Register our service
+	gorest.RegisterService(new(UpService))
 	http.Handle("/", gorest.Handle())
 	http.ListenAndServe(getPort(), nil)
 }
@@ -59,7 +59,7 @@ type UpService struct {
 
 // Routes //
 
-// The home page service
+// The home page route
 func (serv UpService) Home() string {
 	r := response{
 		Message: "hello world",
