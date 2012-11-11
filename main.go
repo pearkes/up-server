@@ -9,6 +9,7 @@ import (
 	"github.com/bmizerany/pq"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -86,9 +87,18 @@ func openDb() *sql.DB {
 
 func initOrm() {
 	// Connect to the DB
-	orm = beedb.New(openDb(), "pg")
-	// Turn on Debugging
-	beedb.OnDebug = true
+	db := openDb()
+	orm = beedb.New(db, "pg")
+	// Probe the table, if not, create it.
+	_, err := getUrl(0)
+	// Hacky check to know when to make a non-existant table
+	if strings.Contains(err.Error(), "does not exist") {
+		// Make the table
+		// In the future, this should probably be done in a safer way.
+		// I don't really know how we might do this better, so leaving
+		// for now.
+		db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check date, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
+	}
 }
 
 // Start the service
