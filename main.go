@@ -5,22 +5,32 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_ "github.com/bmizerany/pq"
+	"github.com/astaxie/beedb"
+	"github.com/bmizerany/pq"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Configuration //
 
 // Get the Postgres Database Url.
-func getDatabase() string {
+func getDatabaseUrl() string {
 	var database_url = os.Getenv("DATABASE_URL")
 	// Set a default database url if there is nothing in the environemnt
 	if database_url == "" {
-		database_url = ""
+		// Postgres.app uses this variable to set-up postgres.
+		user := os.Getenv("USER")
+		// Inject the username into the connection string
+		database_url = "postgres://" + user + "@localhost/up?sslmode=disable"
+		// Let the user know they are using a default
 		fmt.Println("--- INFO: No DATABASE_URL env var detected, defaulting to " + database_url)
 	}
-	return database_url
+	conn_str, err := pq.ParseURL(database_url)
+	if err != nil {
+		panic("Unable to Parse DB URL connection string: " + database_url)
+	}
+	return conn_str
 }
 
 // Get the Port from the environment so we can run on Heroku
@@ -44,13 +54,12 @@ func getSecret() string {
 }
 
 // Objects //
-
 // URL Object
 type Url struct {
-	Id        int    `json:"id,omitempty"`
-	Url       string `json:"url,omitempty"`
-	Checks    int    `json:"checks,omitempty"`
-	LastCheck string `json:"last_check,omitempty"`
+	Id        int       `PK`
+	Url       string    `json:"url,omitempty"`
+	Checks    int       `json:"checks,omitempty"`
+	LastCheck time.Time `json:"last_check,omitempty"`
 }
 
 // The base response object
@@ -60,20 +69,41 @@ type BaseResponse struct {
 	Urls    []Url  `json:"urls,omitempty"`
 }
 
-// Serialize to URL
-func serializeUrl(r sql.Row) {
-	// Mutate row to Url
+// ORM //
+// Database init
+
+var orm beedb.Model
+
+func openDb() *sql.DB {
+	var database_url = getDatabaseUrl()
+	fmt.Println("DATABASEURL: " + database_url)
+	db, err := sql.Open("postgres", database_url)
+	if err != nil {
+		panic("Unable to open database: " + database_url)
+	}
+	return db
+}
+
+func initOrm() {
+	// Connect to the DB
+	orm = beedb.New(openDb(), "pg")
+	// Turn on Debugging
+	beedb.OnDebug = true
 }
 
 // Start the service
 func main() {
+	// Initialize the orm
+	initOrm()
+	// Register the RESTful service
 	gorest.RegisterService(new(UpService))
+	// Handle HTTP requests via the gorest service
 	http.Handle("/", gorest.Handle())
+	// Serve the people
 	http.ListenAndServe(getPort(), nil)
 }
 
 // Helpers //
-
 //Helper to encode JSON responses and catch encoding errors
 func encodeJson(r BaseResponse) string {
 	j, err := json.MarshalIndent(r, "", "  ")
@@ -88,17 +118,37 @@ func encodeJson(r BaseResponse) string {
 
 // Core Logic //
 
-// Retrive URL from the database
-func getUrl(id string) {
-	// Open db connection
-
-	// Query for the id, get back the object and tranfsform
-	// it to a url object
-
-	// close connection
+// Insert a URL into the database
+func addUrl(url string) (Url, error) {
+	var newurl Url
+	newurl.Url = url
+	newurl.Checks = 0
+	newurl.LastCheck = time.Now()
+	err := orm.Save(&newurl)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(newurl)
+	// Do an error check
+	return newurl, err
 }
 
-// Place a URL in the database
+// Get a url
+func getUrl(id int) (Url, error) {
+	var existurl Url
+	err := orm.Where("id=$1", 1).Find(&existurl)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return existurl, err
+}
+
+// Get all of the urls in the system
+func getUrls() ([]Url, error) {
+	var urls []Url
+	err := orm.FindAll(&urls)
+	return urls, err
+}
 
 // Service  //
 
