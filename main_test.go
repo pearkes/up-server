@@ -12,11 +12,7 @@ var port = os.Getenv("PORT")
 
 // Various error handling for ease of development
 func checks() {
-	if port == "" {
-		fmt.Println("--- WARNING: The PORT environment variable must be set.")
-	} else {
-		fmt.Println("--- WARNING: The server must be running for the tests to pass.")
-	}
+	fmt.Println("--- WARNING: The server must be running for the tests to pass.")
 }
 
 func TestHome(t *testing.T) {
