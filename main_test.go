@@ -7,8 +7,17 @@ import (
 	"testing"
 )
 
-//Get the port for testing
+// Get the port for testing
 var port = os.Getenv("PORT")
+
+// Various error handling for ease of development
+func checks() {
+	if port == "" {
+		fmt.Println("--- WARNING: The PORT environment variable must be set.")
+	} else {
+		fmt.Println("--- WARNING: The server must be running for the tests to pass.")
+	}
+}
 
 func TestHome(t *testing.T) {
 
@@ -17,8 +26,20 @@ func TestHome(t *testing.T) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("--- WARNING: The server must be running for the tests to pass.")
+		checks()
 		t.Errorf("Fail => %v", err, resp)
 	}
 
+}
+
+func TestUrls(t *testing.T) {
+
+	var route = "/urls"
+	var url = "http://localhost:" + port + route
+
+	resp, err := http.Get(url)
+	if err != nil {
+		checks()
+		t.Errorf("Fail => %v", err, resp)
+	}
 }
