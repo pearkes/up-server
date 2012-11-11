@@ -77,7 +77,6 @@ var orm beedb.Model
 
 func openDb() *sql.DB {
 	var database_url = getDatabaseUrl()
-	fmt.Println("DATABASEURL: " + database_url)
 	db, err := sql.Open("postgres", database_url)
 	if err != nil {
 		panic("Unable to open database: " + database_url)
@@ -92,12 +91,17 @@ func initOrm() {
 	// Probe the table, if not, create it.
 	_, err := getUrl(0)
 	// Hacky check to know when to make a non-existant table
-	if strings.Contains(err.Error(), "does not exist") {
-		// Make the table
-		// In the future, this should probably be done in a safer way.
-		// I don't really know how we might do this better, so leaving
-		// for now.
-		db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check date, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
+	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") {
+			// Make the table
+			//
+			// In the future, this should probably be done in a safer way.
+			// I don't really know how we might do this better, so leaving
+			// for now. But don't want any extra steps when starting up.
+			//
+			db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check date, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
+			fmt.Println("--- INFO: No url table found, creating one...")
+		}
 	}
 }
 
@@ -147,9 +151,6 @@ func addUrl(url string) (Url, error) {
 func getUrl(id int) (Url, error) {
 	var existurl Url
 	err := orm.Where("id=$1", 1).Find(&existurl)
-	if err != nil {
-		fmt.Println(err)
-	}
 	return existurl, err
 }
 
