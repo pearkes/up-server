@@ -17,6 +17,10 @@ Monitor your web applications. RESTful administration interface.
 
 Then navigate to http://localhost:4242 in your web browser.
 
+### Test
+
+    $ make test
+
 ### Dependencies
 
 Go, and gorest:
