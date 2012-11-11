@@ -4,4 +4,7 @@ build:
 run:
 	bin/up run
 
-.PHONY: build run
+test:
+	go test
+
+.PHONY: build run test
