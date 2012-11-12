@@ -1,7 +1,6 @@
 package main
 
 import (
-	"code.google.com/p/gorest"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 // Configuration //
@@ -57,16 +55,17 @@ func getSecret() string {
 // Objects //
 // URL Object
 type Url struct {
-	Id        int       `PK`
-	Url       string    `json:"url,omitempty"`
-	Checks    int       `json:"checks,omitempty"`
-	LastCheck time.Time `json:"last_check,omitempty"`
+	Id        int    `PK`
+	Url       string `json:"url,omitempty"`
+	Checks    int    `json:"checks,omitempty"`
+	LastCheck string `json:"last_check,omitempty"`
 }
 
 // The base response object
 type BaseResponse struct {
 	Message string `json:"message,omitempty"`
 	Error   bool   `json:"error,omitempty"`
+	Url     Url    `json:"url,omitempty"`
 	Urls    []Url  `json:"urls,omitempty"`
 }
 
@@ -88,8 +87,9 @@ func initOrm() {
 	// Connect to the DB
 	db := openDb()
 	orm = beedb.New(db, "pg")
+	orm.SetPK("id")
 	// Probe the table, if not, create it.
-	_, err := getUrl(0)
+	_, err := getUrl("0")
 	// Hacky check to know when to make a non-existant table
 	if err != nil {
 		if strings.Contains(err.Error(), "does not exist") {
@@ -109,12 +109,8 @@ func initOrm() {
 func main() {
 	// Initialize the orm
 	initOrm()
-	// Register the RESTful service
-	gorest.RegisterService(new(UpService))
-	// Handle HTTP requests via the gorest service
-	http.Handle("/", gorest.Handle())
-	// Serve the people
-	http.ListenAndServe(getPort(), nil)
+	// Initalize the server
+	initServer()
 }
 
 // Helpers //
@@ -137,20 +133,19 @@ func addUrl(url string) (Url, error) {
 	var newurl Url
 	newurl.Url = url
 	newurl.Checks = 0
-	newurl.LastCheck = time.Now()
+	newurl.LastCheck = "01/01/12"
 	err := orm.Save(&newurl)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(newurl)
 	// Do an error check
 	return newurl, err
 }
 
 // Get a url
-func getUrl(id int) (Url, error) {
+func getUrl(id string) (Url, error) {
 	var existurl Url
-	err := orm.Where("id=$1", 1).Find(&existurl)
+	err := orm.Where("id=$1", id).Find(&existurl)
 	return existurl, err
 }
 
@@ -161,50 +156,78 @@ func getUrls() ([]Url, error) {
 	return urls, err
 }
 
-// Service  //
-
-// The main service
-type UpService struct {
-	gorest.RestService `root:"/" consumes:"application/json" produces:"application/json"`
-	home               gorest.EndPoint `method:"GET" path:"/" output:"string"`
-	urls               gorest.EndPoint `method:"GET" path:"/urls" output:"string"`
-}
-
-// Routes //
-
-// The home page route
-func (serv UpService) Home() string {
-	r := BaseResponse{Message: "I will keep you up."}
-	return encodeJson(r)
-}
+// Responses //
 
 // Builds up the Urls in a response object
-func buildUrlsResponse() []Url {
-	// temp for testing, will be real urls from db
-	urls := make([]Url, 3)
-	//
-	urls[0] = Url{
-		Id:     1,
-		Url:    "http://google.com",
-		Checks: 42,
-	}
-	urls[1] = Url{
-		Id:     2,
-		Url:    "http://facebook.com",
-		Checks: 50,
-	}
-	urls[2] = Url{
-		Id:     3,
-		Url:    "http://yahoo.com",
-		Checks: 32,
+func UrlsResponse() []Url {
+	urls, err := getUrls()
+	if err != nil {
+		fmt.Println(err)
 	}
 	return urls
 }
 
-// The urls page route
-func (serv UpService) Urls() string {
-	r := BaseResponse{
-		Urls: buildUrlsResponse(),
+// Builds up a Url response object
+func UrlResponse(id string) Url {
+	// temp for testing, will be real urls from db
+	url, err := getUrl(id)
+	if err != nil {
+		fmt.Println(err)
 	}
-	return encodeJson(r)
+	return url
+}
+
+// Builds up a Add Url response object
+func AddUrlResponse(u string) Url {
+	// temp for testing, will be real urls from db
+	url, err := addUrl(u)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return url
+}
+
+// Routes //
+
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	resp := BaseResponse{
+		Message: "I will keep you up.",
+		Url:     Url{Url: "github.com/pearkes/up"},
+	}
+	fmt.Println("200 " + r.URL.Path)
+	fmt.Fprintf(w, encodeJson(resp))
+}
+
+func UrlsHandler(w http.ResponseWriter, r *http.Request) {
+	resp := BaseResponse{
+		Urls: UrlsResponse(),
+	}
+	fmt.Println("200 " + r.URL.Path)
+	fmt.Fprintf(w, encodeJson(resp))
+}
+
+func UrlHandler(w http.ResponseWriter, r *http.Request) {
+	id := strings.Split(r.URL.Path, "/")[2]
+	urlresponse := UrlResponse(id)
+	if urlresponse.Id == 0 {
+		http.NotFound(w, r)
+		fmt.Println("404 " + r.URL.Path)
+		return
+	}
+	resp := BaseResponse{
+		Url: urlresponse,
+	}
+	fmt.Println("200 " + r.URL.Path)
+	fmt.Fprintf(w, encodeJson(resp))
+}
+
+// Initalize the web server
+func initServer() {
+	// Register the handlers
+	http.HandleFunc("/", HomeHandler)
+	http.HandleFunc("/urls", UrlsHandler)
+	http.HandleFunc("/url/", UrlHandler)
+	// Serve the people
+	fmt.Println("Starting web service...")
+	http.ListenAndServe(getPort(), nil)
 }
