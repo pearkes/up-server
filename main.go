@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/astaxie/beedb"
-	"github.com/bmizerany/pq"
+	"github.com/astaxie/beedb" // ORM
+	"github.com/bmizerany/pq"  // Postgres Database Driver
+	"github.com/gorilla/mux"   // Web Routing Toolkit
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -38,7 +40,7 @@ func getPort() string {
 	// Set a default port if there is nothing in the environment
 	if port == "" {
 		port = "4747"
-		fmt.Println("--- INFO: No PORT env var detected, defaulting to " + port)
+		fmt.Println("--- INFO: No PORT environment variable detected, defaulting to " + port)
 	}
 	return ":" + port
 }
@@ -89,7 +91,7 @@ func initOrm() {
 	orm = beedb.New(db, "pg")
 	orm.SetPK("id")
 	// Probe the table, if not, create it.
-	_, err := getUrl("0")
+	_, err := getUrl(0)
 	// Hacky check to know when to make a non-existant table
 	if err != nil {
 		if strings.Contains(err.Error(), "does not exist") {
@@ -143,7 +145,7 @@ func addUrl(url string) (Url, error) {
 }
 
 // Get a url
-func getUrl(id string) (Url, error) {
+func getUrl(id int64) (Url, error) {
 	var existurl Url
 	err := orm.Where("id=$1", id).Find(&existurl)
 	return existurl, err
@@ -168,7 +170,7 @@ func UrlsResponse() []Url {
 }
 
 // Builds up a Url response object
-func UrlResponse(id string) Url {
+func UrlResponse(id int64) Url {
 	// temp for testing, will be real urls from db
 	url, err := getUrl(id)
 	if err != nil {
@@ -187,6 +189,34 @@ func AddUrlResponse(u string) Url {
 	return url
 }
 
+// Route Helpers
+
+// 200 HTTP
+func success200(r *http.Request) {
+	fmt.Println("200 " + r.URL.Path)
+}
+
+// 404 HTTP
+func abort404(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
+	fmt.Println("404 " + r.URL.Path)
+	return
+}
+
+// 400 HTTP
+func abort400(w http.ResponseWriter, r *http.Request) {
+	status_code := http.StatusBadRequest
+	http.Error(w, http.StatusText(status_code), status_code)
+	fmt.Println("400 " + r.URL.Path)
+	return
+}
+
+// Return JSON response to the ResponseWriter
+
+func writeJson(w http.ResponseWriter, resp BaseResponse) {
+	fmt.Fprintf(w, encodeJson(resp))
+}
+
 // Routes //
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -194,40 +224,57 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		Message: "I will keep you up.",
 		Url:     Url{Url: "github.com/pearkes/up"},
 	}
-	fmt.Println("200 " + r.URL.Path)
-	fmt.Fprintf(w, encodeJson(resp))
+	// Handle 404's
+	if r.URL.Path != "/" {
+		abort404(w, r)
+	}
+	success200(r)
+	writeJson(w, resp)
 }
 
 func UrlsHandler(w http.ResponseWriter, r *http.Request) {
 	resp := BaseResponse{
 		Urls: UrlsResponse(),
 	}
-	fmt.Println("200 " + r.URL.Path)
-	fmt.Fprintf(w, encodeJson(resp))
+	// Handle 404's
+	if r.URL.Path != "/urls" {
+		abort404(w, r)
+		return
+	}
+	success200(r)
+	writeJson(w, resp)
 }
 
 func UrlHandler(w http.ResponseWriter, r *http.Request) {
-	id := strings.Split(r.URL.Path, "/")[2]
+	// Type conversion
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 0, 0)
+	// If something other then an int is sent, abort
+	if err != nil {
+		fmt.Println("Failed to convert to useable id: " + string(id))
+	}
 	urlresponse := UrlResponse(id)
+	// If the object doesn't exist.
 	if urlresponse.Id == 0 {
-		http.NotFound(w, r)
-		fmt.Println("404 " + r.URL.Path)
+		abort404(w, r)
 		return
 	}
 	resp := BaseResponse{
 		Url: urlresponse,
 	}
-	fmt.Println("200 " + r.URL.Path)
-	fmt.Fprintf(w, encodeJson(resp))
+	success200(r)
+	writeJson(w, resp)
 }
 
 // Initalize the web server
 func initServer() {
 	// Register the handlers
-	http.HandleFunc("/", HomeHandler)
-	http.HandleFunc("/urls", UrlsHandler)
-	http.HandleFunc("/url/", UrlHandler)
+	r := mux.NewRouter()
+	r.HandleFunc("/", HomeHandler)
+	r.HandleFunc("/urls", UrlsHandler)
+	r.HandleFunc("/url/{id:[0-9]+}", UrlHandler)
+	http.Handle("/", r)
 	// Serve the people
+	port := getPort()
 	fmt.Println("Starting web service...")
-	http.ListenAndServe(getPort(), nil)
+	http.ListenAndServe(port, nil)
 }
