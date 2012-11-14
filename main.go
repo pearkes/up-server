@@ -7,6 +7,7 @@ import (
 	"github.com/astaxie/beedb" // ORM
 	"github.com/bmizerany/pq"  // Postgres Database Driver
 	"github.com/gorilla/mux"   // Web Routing Toolkit
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -55,6 +56,7 @@ func getSecret() string {
 }
 
 // Objects //
+
 // URL Object
 type Url struct {
 	Id        int    `PK`
@@ -265,15 +267,50 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 	writeJson(w, resp)
 }
 
+func AddUrlHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	r.Body.Close()
+	if err != nil {
+		fmt.Println("Failed to parse URL from request body: " + err.Error())
+		abort400(w, r)
+		return
+	}
+	url := &Url{}
+	_ = json.Unmarshal(body, &url)
+	// TODO move this into a response function
+	newurl, err := addUrl(url.Url)
+	if err != nil {
+		fmt.Println("Failed to add url: " + err.Error())
+		abort400(w, r)
+		return
+	}
+	resp := BaseResponse{
+		Url: newurl,
+	}
+	success200(r)
+	writeJson(w, resp)
+}
+
 // Initalize the web server
 func initServer() {
-	// Register the handlers
+	// The Base Router
 	r := mux.NewRouter()
-	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc("/urls", UrlsHandler)
-	r.HandleFunc("/url/{id:[0-9]+}", UrlHandler)
+	// Unauthenticated index page
+	r.HandleFunc("/", HomeHandler).Methods("GET")
+
+	// Setup an authenticated subrouter
+	s := r.Headers("Content-Type", "application/json").
+		Headers("X-Up-Auth", getSecret()).
+		Subrouter()
+
+	// The authenticated routes
+	s.HandleFunc("/urls", UrlsHandler).Methods("GET")
+	s.HandleFunc("/url/{id:[0-9]+}", UrlHandler).Methods("GET", "DELETE")
+	s.HandleFunc("/url", AddUrlHandler).Methods("POST")
+
+	// Pass the base router to the http handler
 	http.Handle("/", r)
-	// Serve the people
+	// Get the port from the environment and serve the people
 	port := getPort()
 	fmt.Println("Starting web service...")
 	http.ListenAndServe(port, nil)
