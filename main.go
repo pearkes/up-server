@@ -57,7 +57,7 @@ tries to infer some information about your environment.
 
             postgres://$USER@localhost/up?sslmode=disable
 */
-package up
+package main
 
 // main runs the up service
 func main() {
