@@ -57,7 +57,6 @@ tries to infer some information about your environment.
 
             postgres://$USER@localhost/up?sslmode=disable
 */
-
 package up
 
 // main runs the up service
