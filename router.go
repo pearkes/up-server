@@ -81,6 +81,24 @@ func AddUrlHandler(w http.ResponseWriter, r *http.Request) {
 	writeJson(w, resp)
 }
 
+func DeleteUrlHandler(w http.ResponseWriter, r *http.Request) {
+	// Type conversion
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 0, 0)
+	// If something other then an int is sent, abort
+	if err != nil {
+		fmt.Println("Failed to convert to useable id: " + string(id))
+	}
+	err = deleteUrl(id)
+	if err != nil {
+		fmt.Println("Failed to delete url: " + err.Error())
+		abort400(w, r)
+		return
+	}
+	resp := BaseResponse{}
+	success200(r)
+	writeJson(w, resp)
+}
+
 // Initalize the web server
 func initServer() {
 	// The Base Router
@@ -95,7 +113,8 @@ func initServer() {
 
 	// The authenticated routes
 	s.HandleFunc("/urls", UrlsHandler).Methods("GET")
-	s.HandleFunc("/url/{id:[0-9]+}", UrlHandler).Methods("GET", "DELETE")
+	s.HandleFunc("/url/{id:[0-9]+}", UrlHandler).Methods("GET")
+	s.HandleFunc("/url/{id:[0-9]+}", DeleteUrlHandler).Methods("DELETE")
 	s.HandleFunc("/url", AddUrlHandler).Methods("POST")
 
 	// Pass the base router to the http handler

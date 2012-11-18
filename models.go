@@ -63,17 +63,30 @@ func initOrm() {
 }
 
 // Insert a URL into the database
-func addUrl(url string) (Url, error) {
+func addUrl(u string) (Url, error) {
 	var newurl Url
-	newurl.Url = url
+	newurl.Url = u
+
 	newurl.Checks = 0
 	newurl.LastCheck = "01/01/12"
-	err := orm.Save(&newurl)
+	check, err := checkUrl(newurl)
+	if check != true {
+		return newurl, err
+	}
+	err = orm.Save(&newurl)
 	if err != nil {
 		fmt.Println(err)
+		return newurl, err
 	}
 	// Do an error check
 	return newurl, err
+}
+
+// Delete a url
+func deleteUrl(id int64) error {
+	existurl, err := getUrl(id)
+	_, err = orm.Where("id=$1", id).Delete(&existurl)
+	return err
 }
 
 // Get a url

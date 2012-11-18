@@ -63,6 +63,6 @@ package main
 func main() {
 	// Initialize the orm
 	initOrm()
-	// Initalize the server
+	go initChecks()
 	initServer()
 }
