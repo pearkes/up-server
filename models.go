@@ -41,6 +41,7 @@ func openDb() *sql.DB {
 }
 
 func initOrm() {
+	fmt.Println("Initializing ORM...")
 	// Connect to the DB
 	db := openDb()
 	orm = beedb.New(db, "pg")
@@ -66,14 +67,9 @@ func initOrm() {
 func addUrl(u string) (Url, error) {
 	var newurl Url
 	newurl.Url = u
-
 	newurl.Checks = 0
 	newurl.LastCheck = "01/01/12"
-	check, err := checkUrl(newurl)
-	if check != true {
-		return newurl, err
-	}
-	err = orm.Save(&newurl)
+	err := orm.Save(&newurl)
 	if err != nil {
 		fmt.Println(err)
 		return newurl, err

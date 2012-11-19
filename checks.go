@@ -3,11 +3,15 @@ package main
 import (
 	"fmt"
 	"net/http"
+	// "runtime"
 	"time"
 )
 
-func checkUrl(url Url) (bool, error) {
+var checkChan = make(chan bool)
+
+func checkUrl(url Url) {
 	resp, err := http.Get(url.Url)
+	defer resp.Body.Close()
 	if err != nil {
 		fmt.Println(err)
 		// Handle HTTP Errors but "Bad" responses
@@ -16,16 +20,19 @@ func checkUrl(url Url) (bool, error) {
 			// Dispatch Notifier for bad response
 			// Record date last checked
 			// Increment check counter
-			return false, err
+			checkChan <- false
+			return
 		}
 		fmt.Println(url.Url, "check raised an error with nil response.")
 		// Dispatch Notifier for failed lookup, internal error
 		// Record date last_checked
 		// Increment check counter
-		return false, err
+		checkChan <- false
+		return
 	}
 	fmt.Println(url.Url, "check was successful with status:", resp.StatusCode)
-	return true, err
+	checkChan <- true
+	return
 	// Record date last_checked
 	// Increment check counter
 }
@@ -37,14 +44,28 @@ func checkUrls() {
 	}
 	for _, url := range urls {
 		go checkUrl(url)
+		go recieveChecks()
 	}
+	return
 }
 
-func initChecks() {
-	// Initalize the checks
-	c := time.Tick(1 * time.Minute)
+func recieveChecks() {
+	var recievedCheck bool
+	recievedCheck = <-checkChan
+	fmt.Println("Recieved a response from channel:", recievedCheck)
+}
+
+func setTimer() {
+	c := time.Tick(5 * time.Second)
 	for now := range c {
 		go checkUrls()
 		fmt.Println("Dispatched URL checks at", now)
 	}
+}
+
+func initChecks() {
+	fmt.Println("Starting checks...")
+	// Initalize the checks
+	go setTimer()
+	return
 }

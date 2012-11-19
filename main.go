@@ -63,6 +63,8 @@ package main
 func main() {
 	// Initialize the orm
 	initOrm()
+	// Start the checks
 	go initChecks()
+	// Start the webservice
 	initServer()
 }
