@@ -9,20 +9,25 @@ Monitor your web applications. RESTful administration interface.
 
 ### Build
 
-    $ make build
+    $ go build
 
 ### Running
 
-    $ make run
+    $ go build
+    $ ./up-server
 
 Then navigate to http://localhost:4242 in your web browser.
 
 ### Test
 
-    $ make test
+    $ go test
 
-### Dependencies
+### Build Dependencies
 
-Go, and gorest:
+You'll need [gccgo](http://golang.org/doc/install).
 
-    $ go get code.google.com/p/gorest
+To install all of the necessary dependencies:
+
+    $ cd up-server/
+    $ go get .
+    ...
