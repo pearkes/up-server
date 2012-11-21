@@ -56,7 +56,7 @@ func recieveChecks() {
 }
 
 func setTimer() {
-	c := time.Tick(5 * time.Second)
+	c := time.Tick(1 * time.Minute)
 	for now := range c {
 		go checkUrls()
 		fmt.Println("Dispatched URL checks at", now)

@@ -16,10 +16,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		Message: "I will keep you up.",
 		Url:     Url{Url: "github.com/pearkes/up"},
 	}
-	// Handle 404's
-	if r.URL.Path != "/" {
-		abort404(w, r)
-	}
 	success200(r)
 	writeJson(w, resp)
 }
@@ -27,11 +23,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 func UrlsHandler(w http.ResponseWriter, r *http.Request) {
 	resp := BaseResponse{
 		Urls: UrlsResponse(),
-	}
-	// Handle 404's
-	if r.URL.Path != "/urls" {
-		abort404(w, r)
-		return
 	}
 	success200(r)
 	writeJson(w, resp)
@@ -88,10 +79,14 @@ func DeleteUrlHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("Failed to convert to useable id: " + string(id))
 	}
-	err = deleteUrl(id)
+	url, err := DeleteUrlResponse(id)
 	if err != nil {
 		fmt.Println("Failed to delete url: " + err.Error())
 		abort400(w, r)
+		return
+	}
+	if url.Id == 0 {
+		abort404(w, r)
 		return
 	}
 	resp := BaseResponse{}

@@ -25,6 +25,16 @@ func UrlResponse(id int64) Url {
 	return url
 }
 
+// Builds up a Url response object
+func DeleteUrlResponse(id int64) (Url, error) {
+	// temp for testing, will be real urls from db
+	url, err := deleteUrl(id)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return url, err
+}
+
 // Builds up a Add Url response object
 func AddUrlResponse(u string) Url {
 	// temp for testing, will be real urls from db

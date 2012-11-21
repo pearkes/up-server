@@ -16,7 +16,7 @@ func getDatabaseUrl() string {
 		// Inject the username into the connection string
 		database_url = "postgres://" + user + "@localhost/up?sslmode=disable"
 		// Let the user know they are using a default
-		fmt.Println("--- INFO: No DATABASE_URL env var detected, defaulting to " + database_url)
+		fmt.Println("INFO: No DATABASE_URL env var detected, defaulting to " + database_url)
 	}
 	conn_str, err := pq.ParseURL(database_url)
 	if err != nil {
@@ -31,7 +31,7 @@ func getPort() string {
 	// Set a default port if there is nothing in the environment
 	if port == "" {
 		port = "4747"
-		fmt.Println("--- INFO: No PORT environment variable detected, defaulting to " + port)
+		fmt.Println("INFO: No PORT environment variable detected, defaulting to " + port)
 	}
 	return ":" + port
 }

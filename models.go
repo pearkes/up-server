@@ -58,7 +58,7 @@ func initOrm() {
 			// for now. But don't want any extra steps when starting up.
 			//
 			db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check date, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
-			fmt.Println("--- INFO: No url table found, creating one...")
+			fmt.Println("INFO: No url table found, creating one...")
 		}
 	}
 }
@@ -79,10 +79,10 @@ func addUrl(u string) (Url, error) {
 }
 
 // Delete a url
-func deleteUrl(id int64) error {
+func deleteUrl(id int64) (Url, error) {
 	existurl, err := getUrl(id)
 	_, err = orm.Where("id=$1", id).Delete(&existurl)
-	return err
+	return existurl, err
 }
 
 // Get a url
