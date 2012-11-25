@@ -12,20 +12,15 @@ import (
 // Routes //
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	resp := BaseResponse{
-		Message: "I will keep you up.",
-		Url:     Url{Url: "github.com/pearkes/up"},
-	}
+	resp := HomeResponse()
 	success200(r)
-	writeJson(w, resp)
+	fmt.Fprintf(w, encodeJson(resp))
 }
 
 func UrlsHandler(w http.ResponseWriter, r *http.Request) {
-	resp := BaseResponse{
-		Urls: UrlsResponse(),
-	}
+	resp := UrlsResponse()
 	success200(r)
-	writeJson(w, resp)
+	fmt.Fprintf(w, encodeJson(resp))
 }
 
 func UrlHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,11 +36,8 @@ func UrlHandler(w http.ResponseWriter, r *http.Request) {
 		abort404(w, r)
 		return
 	}
-	resp := BaseResponse{
-		Url: urlresponse,
-	}
 	success200(r)
-	writeJson(w, resp)
+	writeJson(w, urlresponse)
 }
 
 func AddUrlHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,9 +57,7 @@ func AddUrlHandler(w http.ResponseWriter, r *http.Request) {
 		abort400(w, r)
 		return
 	}
-	resp := BaseResponse{
-		Url: newurl,
-	}
+	resp := UrlResponse(int64(newurl.Id))
 	success200(r)
 	writeJson(w, resp)
 }
@@ -89,7 +79,9 @@ func DeleteUrlHandler(w http.ResponseWriter, r *http.Request) {
 		abort404(w, r)
 		return
 	}
-	resp := BaseResponse{}
+	resp := BaseResponse{
+		Message: "Successfully deleted url: " + url.Url,
+	}
 	success200(r)
 	writeJson(w, resp)
 }

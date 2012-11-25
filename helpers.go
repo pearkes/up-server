@@ -8,7 +8,7 @@ import (
 
 // Helpers //
 //Helper to encode JSON responses and catch encoding errors
-func encodeJson(r BaseResponse) string {
+func encodeJson(r interface{}) string {
 	j, err := json.MarshalIndent(r, "", "  ")
 
 	// Catch JSON encoding errors
@@ -41,6 +41,6 @@ func abort400(w http.ResponseWriter, r *http.Request) {
 
 // Return JSON response to the ResponseWriter
 
-func writeJson(w http.ResponseWriter, resp BaseResponse) {
+func writeJson(w http.ResponseWriter, resp interface{}) {
 	fmt.Fprintf(w, encodeJson(resp))
 }

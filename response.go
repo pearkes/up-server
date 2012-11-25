@@ -6,13 +6,24 @@ import (
 
 // Responses //
 
+func HomeResponse() BaseResponse {
+	resp := BaseResponse{
+		Message: "I will keep you up.",
+		Url:     "github.com/pearkes/up-server",
+	}
+	return resp
+}
+
 // Builds up the Urls in a response object
-func UrlsResponse() []Url {
+func UrlsResponse() UrlsBaseResponse {
 	urls, err := getUrls()
 	if err != nil {
 		fmt.Println(err)
 	}
-	return urls
+	resp := UrlsBaseResponse{
+		Urls: urls,
+	}
+	return resp
 }
 
 // Builds up a Url response object

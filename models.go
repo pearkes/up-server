@@ -9,7 +9,7 @@ import (
 
 // Objects //
 
-// URL Object
+// URL Object, which can be used in a response
 type Url struct {
 	Id        int    `PK`
 	Url       string `json:"url,omitempty"`
@@ -20,9 +20,12 @@ type Url struct {
 // The base response object
 type BaseResponse struct {
 	Message string `json:"message,omitempty"`
-	Error   bool   `json:"error,omitempty"`
-	Url     Url    `json:"url,omitempty"`
-	Urls    []Url  `json:"urls,omitempty"`
+	Url     string `json:"url,omitempty"`
+}
+
+// The object used to return urls in a response
+type UrlsBaseResponse struct {
+	Urls []Url `json:"urls,omitempty"`
 }
 
 // ORM //
