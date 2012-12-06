@@ -51,15 +51,17 @@ func AddUrlHandler(w http.ResponseWriter, r *http.Request) {
 	url := &Url{}
 	_ = json.Unmarshal(body, &url)
 	// TODO move this into a response function
-	newurl, err := addUrl(url.Url)
+	newurl, err := AddUrlResponse(url.Url)
 	if err != nil {
-		fmt.Println("Failed to add url: " + err.Error())
+		errresp := BaseResponse{
+			Message: err.Error(),
+		}
+		writeJson(w, errresp)
 		abort400(w, r)
 		return
 	}
-	resp := UrlResponse(int64(newurl.Id))
 	success200(r)
-	writeJson(w, resp)
+	writeJson(w, newurl)
 }
 
 func DeleteUrlHandler(w http.ResponseWriter, r *http.Request) {

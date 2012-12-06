@@ -47,11 +47,11 @@ func DeleteUrlResponse(id int64) (Url, error) {
 }
 
 // Builds up a Add Url response object
-func AddUrlResponse(u string) Url {
+func AddUrlResponse(u string) (Url, error) {
 	// temp for testing, will be real urls from db
 	url, err := addUrl(u)
 	if err != nil {
 		fmt.Println(err)
 	}
-	return url
+	return url, err
 }

@@ -3,38 +3,44 @@ package main
 import (
 	"fmt"
 	"net/http"
-	// "runtime"
 	"time"
 )
 
-var checkChan = make(chan bool)
+var checkChan = make(chan Url)
+
+func failCheck(url Url, status int) {
+	url.LastCheckStatus = status
+	url.LastCheck = time.Now().UTC()
+	url.Checks = url.Checks + 1
+	// Save Check
+	orm.Save(&url)
+	checkChan <- url
+}
+
+func passCheck(url Url, status int) {
+	url.LastCheckStatus = status
+	url.LastCheck = time.Now().UTC()
+	url.Checks = url.Checks + 1
+	// Save Check
+	orm.Save(&url)
+	checkChan <- url
+}
 
 func checkUrl(url Url) {
 	resp, err := http.Get(url.Url)
-	defer resp.Body.Close()
 	if err != nil {
-		fmt.Println(err)
-		// Handle HTTP Errors but "Bad" responses
-		if resp != nil {
-			fmt.Println(url.Url, "check raised an error with status:", resp.StatusCode)
-			// Dispatch Notifier for bad response
-			// Record date last checked
-			// Increment check counter
-			checkChan <- false
-			return
-		}
-		fmt.Println(url.Url, "check raised an error with nil response.")
-		// Dispatch Notifier for failed lookup, internal error
-		// Record date last_checked
-		// Increment check counter
-		checkChan <- false
-		return
+		fmt.Println("Check Failed:", err)
 	}
-	fmt.Println(url.Url, "check was successful with status:", resp.StatusCode)
-	checkChan <- true
-	return
-	// Record date last_checked
-	// Increment check counter
+	if resp != nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == 200 {
+			passCheck(url, resp.StatusCode)
+		} else {
+			failCheck(url, resp.StatusCode)
+		}
+	} else {
+		failCheck(url, 0)
+	}
 }
 
 func checkUrls() {
@@ -50,9 +56,11 @@ func checkUrls() {
 }
 
 func recieveChecks() {
-	var recievedCheck bool
-	recievedCheck = <-checkChan
-	fmt.Println("Recieved a response from channel:", recievedCheck)
+	checkedUrl := <-checkChan
+	if checkedUrl.LastCheckStatus != 200 {
+		// Send a notifier
+		fmt.Println("Triggering notifier for", checkedUrl.Url)
+	}
 }
 
 func setTimer() {

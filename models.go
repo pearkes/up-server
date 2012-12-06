@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"github.com/astaxie/beedb" // ORM
 	"strings"
+	"time"
 )
 
 // Objects //
 
 // URL Object, which can be used in a response
 type Url struct {
-	Id        int    `PK`
-	Url       string `json:"url,omitempty"`
-	Checks    int    `json:"checks,omitempty"`
-	LastCheck string `json:"last_check,omitempty"`
+	Id              int       `PK`
+	Url             string    `json:"url,omitempty"`
+	Checks          int       `json:"checks,omitempty"`
+	LastCheck       time.Time `json:"last_check,omitempty"`
+	LastCheckStatus int       `json:"last_check_status,omitempty"`
 }
 
 // The base response object
@@ -60,7 +62,7 @@ func initOrm() {
 			// I don't really know how we might do this better, so leaving
 			// for now. But don't want any extra steps when starting up.
 			//
-			db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check date, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
+			db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check date, last_check_status int, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
 			fmt.Println("INFO: No url table found, creating one...")
 		}
 	}
@@ -70,15 +72,17 @@ func initOrm() {
 func addUrl(u string) (Url, error) {
 	var newurl Url
 	newurl.Url = u
-	newurl.Checks = 0
-	newurl.LastCheck = "01/01/12"
 	err := orm.Save(&newurl)
 	if err != nil {
 		fmt.Println(err)
 		return newurl, err
 	}
+	url, err := getUrl(int64(newurl.Id))
+	if err != nil {
+		fmt.Println(err)
+	}
 	// Do an error check
-	return newurl, err
+	return url, err
 }
 
 // Delete a url
