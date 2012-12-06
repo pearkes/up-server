@@ -36,6 +36,11 @@ func getPort() string {
 	return ":" + port
 }
 
+func getEmailConfig() MailAuth {
+	auth := MailAuth{Sender: os.Getenv("EMAIL_SENDER"), Password: os.Getenv("EMAIL_PASSWORD"), Host: os.Getenv("EMAIL_HOST")}
+	return auth
+}
+
 // Get the secret key for interacting with the application
 func getSecret() string {
 	var secret = os.Getenv("SECRET")

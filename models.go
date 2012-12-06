@@ -62,7 +62,7 @@ func initOrm() {
 			// I don't really know how we might do this better, so leaving
 			// for now. But don't want any extra steps when starting up.
 			//
-			db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check date, last_check_status int, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
+			db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check timestamp, last_check_status int, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
 			fmt.Println("INFO: No url table found, creating one...")
 		}
 	}
