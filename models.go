@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/astaxie/beedb" // ORM
+	"github.com/pearkes/hood" // ORM
 	"strings"
 	"time"
 )
@@ -12,7 +12,7 @@ import (
 
 // URL Object, which can be used in a response
 type Url struct {
-	Id              int       `PK`
+	Id              int       `sql:"pk"`
 	Url             string    `json:"url,omitempty"`
 	Checks          int       `json:"checks,omitempty"`
 	LastCheck       time.Time `json:"last_check,omitempty"`
@@ -30,49 +30,24 @@ type UrlsBaseResponse struct {
 	Urls []Url `json:"urls,omitempty"`
 }
 
-// ORM //
-
-// Database init
-
-var orm beedb.Model
-
-func openDb() *sql.DB {
-	var database_url = getDatabaseUrl()
-	db, err := sql.Open("postgres", database_url)
-	if err != nil {
-		panic("Unable to open database: " + database_url)
-	}
-	return db
-}
-
-func initOrm() {
+func initOrm() *hood.Hood {
 	fmt.Println("Initializing ORM...")
 	// Connect to the DB
-	db := openDb()
-	orm = beedb.New(db, "pg")
-	orm.SetPK("id")
-	// Probe the table, if not, create it.
-	_, err := getUrl(0)
-	// Hacky check to know when to make a non-existant table
+	hd, err := hood.Open("postgres", getDatabaseUrl())
+	// Create the table
+	err = hd.CreateTable(&Url{})
 	if err != nil {
-		if strings.Contains(err.Error(), "does not exist") {
-			// Make the table
-			//
-			// In the future, this should probably be done in a safer way.
-			// I don't really know how we might do this better, so leaving
-			// for now. But don't want any extra steps when starting up.
-			//
-			db.Exec("CREATE TABLE url ( id SERIAL NOT NULL, url varchar NOT NULL, checks int, last_check timestamp, last_check_status int, CONSTRAINT url_pkey PRIMARY KEY (id) ) WITH (OIDS=FALSE);")
-			fmt.Println("INFO: No url table found, creating one...")
-		}
+		panic(err)
 	}
+	return hd
 }
 
 // Insert a URL into the database
 func addUrl(u string) (Url, error) {
 	var newurl Url
 	newurl.Url = u
-	err := orm.Save(&newurl)
+	tx := hd.Begin()
+	err := tx.Save(&newurl)
 	if err != nil {
 		fmt.Println(err)
 		return newurl, err

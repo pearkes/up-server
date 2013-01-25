@@ -50,6 +50,10 @@ func sendMail(mail Mail) {
 	mail.Content = formatEmailBody(mail)
 	auth := getEmailConfig()
 	auth.Auth = getEmailAuth(auth)
+	if getDebug() == true {
+		fmt.Println("Sending debug mail:\n\n", mail.Subject, mail.Recipient)
+		return
+	}
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
 	err := smtp.SendMail(

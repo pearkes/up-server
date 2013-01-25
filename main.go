@@ -62,7 +62,7 @@ package main
 // main runs the up service
 func main() {
 	// Initialize the orm
-	initOrm()
+	hd := initOrm()
 	// Start the checks
 	go initChecks()
 	// Start the webservice

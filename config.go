@@ -36,6 +36,17 @@ func getPort() string {
 	return ":" + port
 }
 
+// Get the Port from the environment so we can run on Heroku
+func getDebug() bool {
+	var debugenv = os.Getenv("DEBUG")
+	debug := false
+	// Set a default port if there is nothing in the environment
+	if debugenv == "true" {
+		debug = true
+	}
+	return debug
+}
+
 func getEmailConfig() MailAuth {
 	auth := MailAuth{Sender: os.Getenv("EMAIL_SENDER"), Password: os.Getenv("EMAIL_PASSWORD"), Host: os.Getenv("EMAIL_HOST")}
 	return auth
